@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+        
+        <record id="view_move_line_tree" model="ir.ui.view">
+            <!-- Based heavily on equivalent XML in accounts module of Odoo v8 itself.
+                 #    OpenERP, Open Source Management Solution
+                 #    Copyright (C) 2004-2010 Tiny SPRL (<http://tiny.be>).
+                 #
+                 #    This program is free software: you can redistribute it and/or modify
+                 #    it under the terms of the GNU Affero General Public License as
+                 #    published by the Free Software Foundation, either version 3 of the
+                 #    License, or (at your option) any later version.
+                 #
+                 #    This program is distributed in the hope that it will be useful,
+                 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
+                 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+                 #    GNU Affero General Public License for more details.
+                 #
+                 #    You should have received a copy of the GNU Affero General Public License
+                 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+            -->
+                 
+            <field name="name">account_receivable_button.move.line.tree</field>
+            <field name="model">account.move.line</field>
+            <field eval="100" name="priority"/>
+            <field name="arch" type="xml">
+                <tree colors="red:state == 'draft';black:state == 'valid'" string="Journal Items" create="false">
+                    <field name="journal_id" options='{"no_open":True}'/>
+                    <field name="period_id" options='{"no_open":True}'/>
+                    <field name="date"/>
+                    <field name="name"/>
+                    <field name="ref"/>
+                    <field name="statement_id" invisible="1"/>
+                    <field name="partner_id"
+                        domain="['|', ('parent_id', '=', False), ('is_company', '=', True)]"
+                        on_xochange="onchange_partner_id(move_id, partner_id, account_id, debit, credit, date, journal_id)"/>
+                    <field name="account_id" options='{"no_open":True}' domain="[('journal_id','=',journal_id), ('company_id', '=', company_id)]" on_change="onchange_account_id(account_id, partner_id, context)"/>
+                    <field name="account_tax_id" options='{"no_open":True}' invisible="context.get('journal_type', False) not in ['sale','sale_refund','purchase','purchase_refund','general']"/>
+                    <field name="analytic_account_id" groups="analytic.group_analytic_accounting" domain="[('type','not in',['view','template'])]" invisible="not context.get('analytic_journal_id',False)"/>
+                    <field name="move_id" required="0"/>
+                    <field name="date_maturity"/>
+                    <!-- TODO these turned out to be the wrong fields.
+                         Use new computed fields based on 'debit' and 'credit'.
+                         And for the currency one based on amount_currency. -->
+                    <field name="amount_residual_agg" string="Residual Amount" sum="Total in Base Currency" readonly="True"/>
+                    <field name="amount_residual_currency_agg" sum="Total in Currency (grand total will be meaningless, group by currency to get total per currency)"/>
+                    <field name="effective_currency_id" readonly="True" invisible="not context.get('currency',False)" />
+                    <field name="reconcile_ref"/>
+                    <field name="invoice" invisible="1"/>
+                    <field name="state" invisible="1"/>
+                    <field name="company_id" invisible="1"/>
+                </tree>
+            </field>
+        </record>
+        <record id="view_account_move_line_filter" model="ir.ui.view">
+            <!-- Based heavily on equivalent XML in accounts module of Odoo v8 itself.
+                 #    OpenERP, Open Source Management Solution
+                 #    Copyright (C) 2004-2010 Tiny SPRL (<http://tiny.be>).
+                 #
+                 #    This program is free software: you can redistribute it and/or modify
+                 #    it under the terms of the GNU Affero General Public License as
+                 #    published by the Free Software Foundation, either version 3 of the
+                 #    License, or (at your option) any later version.
+                 #
+                 #    This program is distributed in the hope that it will be useful,
+                 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
+                 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+                 #    GNU Affero General Public License for more details.
+                 #
+                 #    You should have received a copy of the GNU Affero General Public License
+                 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+            -->
+
+            <field name="name">Balances Filter</field>
+            <field name="model">account.move.line</field>
+            <field name="arch" type="xml">
+                <search string="Search Journal Items">
+                    <field name="name" filter_domain="['|', ('name','ilike',self), ('ref','ilike',self)]" string="Move"/>
+                    <field name="date"/>
+                    <filter icon="terp-document-new" string="Unbalanced" domain="[('state','=','draft')]" help="Unbalanced Journal Items"/>
+                    <separator/>
+                    <filter icon="terp-document-new" string="Unposted" domain="[('move_id.state','=','draft')]" help="Unposted Journal Items"/>
+                    <filter name="posted" icon="terp-camera_test" string="Posted" domain="[('move_id.state','=','posted')]" help="Posted Journal Items"/>
+                    <separator/>
+                    <filter icon="terp-dolar_ok!" string="Unreconciled" domain="[('reconcile_id','=',False), ('account_id.reconcile','=',True)]" help="Unreconciled Journal Items" name="unreconciled"/>
+                    <separator/>
+                    <filter string="Next Partner to Reconcile" help="Next Partner Entries to reconcile" name="next_partner" context="{'next_partner_only': 1}" icon="terp-gtk-jump-to-ltr" domain="[('account_id.reconcile','=',True),('reconcile_id','=',False)]"/>
+                    <field name="move_id" string="Number (Move)"/>
+                    <field name="account_id"/>
+                    <field name="partner_id"/>
+                    <field name="account_type"/>
+                    <field name="journal_id" context="{'journal_name':self}" widget="selection"/> <!-- it's important to keep widget='selection' in this filter viewbecause without that the value passed in the context is not the ID but the textual value (name) of the selected journal -->
+                    <field name="period_id" context="{'period_id':self}" widget="selection"/> <!-- it's important to keep the widget='selection' in this field, for the same reason as explained above -->
+                    <group expand="0" string="Group By">
+                        <filter string="Effective Currency" name="group_by_effective_currency" domain="[]" context="{'group_by': 'effective_currency_id'}"/>
+                        <filter string="Partner" icon="terp-partner" domain="[]" context="{'group_by':'partner_id'}"/>
+                        <filter string="Journal" icon="terp-folder-orange" domain="[]" context="{'group_by':'journal_id'}"/>
+                        <filter string="Account"  icon="terp-folder-green" context="{'group_by':'account_id'}"/>
+                        <filter string="Period" icon="terp-go-month" domain="[]" context="{'group_by':'period_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_account_moves_receivable_tree" model="ir.actions.act_window">
+            <field name="name">Receivables</field>
+            <field name="res_model">account.move.line</field>
+            <field name="context">
+                {
+                'search_default_partner_id': active_id,
+                'default_partner_id': active_id,
+                'currency': True,
+                'search_default_reconcile_id': False,
+                'search_default_account_type': 'receivable',
+                'search_default_unreconciled': True,
+                'view_mode': True,
+                'search_default_posted': True,
+                'search_default_group_by_effective_currency': True,
+                }
+            </field>
+            <field name="view_id" ref="view_move_line_tree"/>
+            <field name="search_view_id" ref="view_account_move_line_filter"/>
+        </record>
+        <record id="action_account_moves_payable_tree" model="ir.actions.act_window">
+            <field name="name">Payables</field>
+            <field name="res_model">account.move.line</field>
+            <field name="context">
+                {
+                'search_default_partner_id': active_id,
+                'default_partner_id': active_id,
+                'currency': True,
+                'search_default_reconcile_id': False,
+                'search_default_account_type': 'payable',
+                'search_default_unreconciled': True,
+                'view_mode': True,
+                'search_default_posted': True,
+                'search_default_group_by_effective_currency': True,
+                }
+            </field>
+            <field name="view_id" ref="view_move_line_tree"/>
+            <field name="search_view_id" ref="view_account_move_line_filter"/>
+        </record>
+
+    </data>
+</openerp>

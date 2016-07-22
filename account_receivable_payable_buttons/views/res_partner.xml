@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<openerp>
+    <data>
+       <record id="view_partner_form" model="ir.ui.view">
+            <field name="name">res.partner.inherit</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <field name="credit" position="replace"/>
+                <xpath expr="//div[@name='buttons']" position="inside">
+                    <button type="action"
+                        class="oe_stat_button"
+                        id="amount_receivable_button"
+                        icon="fa-pencil-square-o"
+                        name="%(account_receivable_payable_buttons.action_account_moves_receivable_tree)d"
+                        >
+                        <div><strong><field name="credit" widget="monetary"/></strong><br/>Receivable</div>
+                    </button>
+                </xpath>
+                <field name="debit" position="replace"/>
+                <xpath expr="//div[@name='buttons']" position="inside">
+                    <button type="action"
+                        class="oe_stat_button"
+                        id="amount_payable_button"
+                        icon="fa-pencil-square-o"
+                        name="%(account_receivable_payable_buttons.action_account_moves_payable_tree)d"
+                        >
+                        <div><strong><field name="debit" widget="monetary"/></strong><br/>Payable</div>
+                    </button>
+                </xpath>
+            </field>
+       </record>
+    </data>
+</openerp>
+
