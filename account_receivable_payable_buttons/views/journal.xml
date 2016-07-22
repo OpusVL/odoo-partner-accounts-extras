@@ -43,8 +43,8 @@
                     <!-- TODO these turned out to be the wrong fields.
                          Use new computed fields based on 'debit' and 'credit'.
                          And for the currency one based on amount_currency. -->
-                    <field name="amount_residual_agg" string="Residual Amount" sum="Total in Base Currency" readonly="True"/>
-                    <field name="amount_residual_currency_agg" sum="Total in Currency (grand total will be meaningless, group by currency to get total per currency)"/>
+                    <field name="line_amount_agg" string="Line Amount" sum="Total in Base Currency" readonly="True"/>
+                    <field name="line_amount_effective_currency_agg" sum="Total in Secondary Currency (grand total will be meaningless, group by currency to get total per currency)"/>
                     <field name="effective_currency_id" readonly="True" invisible="not context.get('currency',False)" />
                     <field name="reconcile_ref"/>
                     <field name="invoice" invisible="1"/>

@@ -31,20 +31,18 @@ class AccountMoveLine(models.Model):
         string='Account Internal Type',
     )
 
-    # TODO I think if journal type is not sale or purchase or sale_refund or purchase_refund,
-    # then we need to negate the line value of both amount_residual_agg and amount_residual_currency_agg
-    # so the sums come out right
-    
-    amount_residual_agg = fields.Float(
-        related=['amount_residual'],
+    line_amount_agg = fields.Float(
+        compute='_compute_aggregate_amounts',
         readonly=True,
         store=True,
+        # TODO digits
     )
 
-    amount_residual_currency_agg = fields.Float(
-        related=['amount_residual_currency'],
+    line_amount_effective_currency_agg = fields.Float(
+        compute='_compute_aggregate_amounts',
         readonly=True,
         store=True,
+        # TODO digits
     )
 
     effective_currency_id = fields.Many2one(
@@ -54,6 +52,13 @@ class AccountMoveLine(models.Model):
         readonly=True,
         string='Effective Currency',
     )
+
+    @api.depends('amount_currency', 'currency_id', 'credit', 'debit')
+    @api.one
+    def _compute_aggregate_amounts(self):
+        line_value = (self.credit - self.debit)
+        self.line_amount_agg = line_value
+        self.line_amount_effective_currency_agg = -self.amount_currency if self.currency_id else line_value
 
     @api.depends('currency_id', 'company_id.currency_id')
     @api.one
