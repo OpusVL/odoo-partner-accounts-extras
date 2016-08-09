@@ -21,6 +21,7 @@
 ##############################################################################
 
 from openerp import models, fields, api
+import openerp.addons.decimal_precision as dp
 
 class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
@@ -35,14 +36,14 @@ class AccountMoveLine(models.Model):
         compute='_compute_aggregate_amounts',
         readonly=True,
         store=True,
-        # TODO digits
+        digits=dp.get_precision('Account'),
     )
 
     line_amount_effective_currency_agg = fields.Float(
         compute='_compute_aggregate_amounts',
         readonly=True,
         store=True,
-        # TODO digits
+        digits=dp.get_precision('Account'),
     )
 
     effective_currency_id = fields.Many2one(

@@ -45,6 +45,7 @@
     'depends': [
         'base',
         'account',
+        'decimal_precision',
     ],
     'data': [
         'views/journal.xml',
